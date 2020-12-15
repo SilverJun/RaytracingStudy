@@ -4,8 +4,23 @@
 #include "color.h"
 #include "ray.h"
 
+bool hit_sphere(const point3& center, double radius, const ray& r)
+{
+	vec3 oc = r.orig - center;
+	auto a = dot(r.dir, r.dir);
+	auto b = 2.0 * dot(oc, r.dir);
+	auto c = dot(oc, oc) - radius * radius;
+	auto discriminant = b * b - 4 * a * c;
+	return discriminant > 0;
+}
+
 color ray_color(const ray& r)
 {
+	if (hit_sphere(point3(0, 0, -1), 0.5, r))
+	{
+		return color(1, 0, 0);
+	}
+	
 	vec3 unit_direction = unit_vector(r.dir);
 
 	auto t = 0.5 * (unit_direction.y + 1.0);
@@ -16,8 +31,8 @@ int main()
 {
 	// Image
 	const double aspect_ratio = 16.0 / 9.0;
-	const int image_width = 256;
-	const int image_height = 256;
+	const int image_width = 400;
+	const int image_height = static_cast<int>(image_width / aspect_ratio);
 
 	// Camera
 
