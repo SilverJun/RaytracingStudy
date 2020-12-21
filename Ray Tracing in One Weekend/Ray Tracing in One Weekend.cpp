@@ -102,16 +102,18 @@ int main()
 	auto aperture = 0.1;
 
 	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
-	// Render
-	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
+	vector<vector<color> > frame(image_height, vector<color>(image_width, color(0, 0, 0)));
+
+	// Render
 	for (int j = image_height - 1; j >= 0; --j)
 	{
-		std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+		std::cerr << "\rline: " << j << ' ' << std::flush;
 
 		for (int i = 0; i < image_width; ++i)
 		{
 			color pixel_color(0, 0, 0);
+#pragma omp parallel for
 			for (int s = 0; s < samples_per_pixel; ++s)
 			{
 				auto u = (i + random_double()) / (image_width - 1);
@@ -119,7 +121,28 @@ int main()
 				ray r = cam.get_ray(u, v);
 				pixel_color += ray_color(r, world, max_depth);
 			}
-			write_color(std::cout, pixel_color, samples_per_pixel);
+			auto scale = 1.0 / samples_per_pixel;
+			auto r = sqrt(scale * pixel_color.r);
+			auto g = sqrt(scale * pixel_color.g);
+			auto b = sqrt(scale * pixel_color.b);
+
+			frame[j][i] = color(static_cast<int>(256 * clamp(r, 0.0, 0.999))
+				, static_cast<int>(256 * clamp(g, 0.0, 0.999))
+				, static_cast<int>(256 * clamp(b, 0.0, 0.999)));
+		}
+	}
+	std::cerr << "\nDone.\nSave Start";
+	
+	// Save
+	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+	for (int j = image_height - 1; j >= 0; --j)
+	{
+		std::cerr << "\rSave remaining: " << j << ' ' << std::flush;
+
+		for (int i = 0; i < image_width; ++i)
+		{
+			write_color(std::cout, frame[j][i]);
 		}
 	}
 
