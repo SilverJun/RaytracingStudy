@@ -88,7 +88,7 @@ int main()
 	const auto aspect_ratio = 3.0 / 2.0;
 	const int image_width = 1200;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
-	const int samples_per_pixel = 500;
+	const int samples_per_pixel = 100;
 	const int max_depth = 50;
 
 	// World
@@ -103,17 +103,16 @@ int main()
 
 	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
-	vector<vector<color> > frame(image_height, vector<color>(image_width, color(0, 0, 0)));
+	vector<vector<color> > frame(image_height, vector<color>(image_width));
 
-	// Render
+#pragma omp parallel for shared(frame) firstprivate(image_height, image_width, samples_per_pixel, cam, world, max_depth) num_threads(8)
 	for (int j = image_height - 1; j >= 0; --j)
 	{
-		std::cerr << "\rline: " << j << ' ' << std::flush;
+		std::cerr << "\rRendering " << j << " line" << std::flush;
 
 		for (int i = 0; i < image_width; ++i)
 		{
 			color pixel_color(0, 0, 0);
-#pragma omp parallel for
 			for (int s = 0; s < samples_per_pixel; ++s)
 			{
 				auto u = (i + random_double()) / (image_width - 1);
@@ -121,28 +120,20 @@ int main()
 				ray r = cam.get_ray(u, v);
 				pixel_color += ray_color(r, world, max_depth);
 			}
-			auto scale = 1.0 / samples_per_pixel;
-			auto r = sqrt(scale * pixel_color.r);
-			auto g = sqrt(scale * pixel_color.g);
-			auto b = sqrt(scale * pixel_color.b);
-
-			frame[j][i] = color(static_cast<int>(256 * clamp(r, 0.0, 0.999))
-				, static_cast<int>(256 * clamp(g, 0.0, 0.999))
-				, static_cast<int>(256 * clamp(b, 0.0, 0.999)));
+			frame[j][i] = pixel_color;
 		}
 	}
-	std::cerr << "\nDone.\nSave Start";
 	
-	// Save
+	// Render
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
 	for (int j = image_height - 1; j >= 0; --j)
 	{
-		std::cerr << "\rSave remaining: " << j << ' ' << std::flush;
+		std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
 
 		for (int i = 0; i < image_width; ++i)
 		{
-			write_color(std::cout, frame[j][i]);
+			write_color(std::cout, frame[j][i], samples_per_pixel);
 		}
 	}
 
