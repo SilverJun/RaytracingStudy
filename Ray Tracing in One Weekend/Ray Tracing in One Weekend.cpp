@@ -86,7 +86,7 @@ int main()
 {
 	// Image
 	const auto aspect_ratio = 3.0 / 2.0;
-	const int image_width = 600;
+	const int image_width = 1200;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int samples_per_pixel = 100;
 	const int max_depth = 50;
@@ -105,7 +105,7 @@ int main()
 
 	vector<vector<color> > frame(image_height, vector<color>(image_width));
 
-#pragma omp parallel for shared(frame) firstprivate(image_height, image_width, samples_per_pixel, cam, world, max_depth) num_threads(8)
+#pragma omp parallel for shared(frame, cam, world) firstprivate(image_height, image_width, samples_per_pixel, max_depth) num_threads(4)
 	for (int j = image_height - 1; j >= 0; --j)
 	{
 		std::cerr << "\rRendering " << j << " line" << std::flush;
