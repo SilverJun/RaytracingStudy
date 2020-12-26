@@ -3,4 +3,4 @@
 
 ## Ray Tracing in One Weekend
 My result(with OpenMP):
-![rt1w.ppm](./rt1w.ppm)
+![rt1w.png](./rt1w.png)
